@@ -25,14 +25,21 @@ Full-stack cookie consent platform with a CDN-first config architecture, a React
 
 ### 📄⚙️ doc-grinder — PDF Intelligence Pipeline
 
-AI document intelligence pipeline that extracts structured fields, generates pgvector embeddings, and answers questions with page-level bounding-box citations — grounded to the source PDF via a hybrid RAG architecture powered by Gemini 2.5. Sensitive documents such as IDs and passports are processed locally using Gemma 4, keeping personal data fully on-device.
+AI document intelligence pipeline that extracts structured fields, generates pgvector embeddings, and answers questions with page-level bounding-box citations — grounded to the source PDF via a hybrid RAG architecture powered by Gemini 2.5. Also ships a fully local, offline pipeline on Apple Silicon: **[baidu/Unlimited-OCR](https://github.com/baidu/Unlimited-OCR)** (3B VLM, MLX 4-bit, via **[sahilchachra/unlimited-ocr-4bit-mlx](https://huggingface.co/sahilchachra/unlimited-ocr-4bit-mlx)**) for extraction, and **[Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B)** (0.6B, MLX 4-bit DWQ, via **[mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ](https://huggingface.co/mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ)**) for 1024-dim embeddings — zero API cost, no data leaves the device.
 
 - **Financial underwriting** — parse loan applications, income statements, and KYC documents into structured fields ready for downstream decisioning
 - **Table & data extraction** — pull structured tables, figures, and key values from dense PDFs with exact page and bounding-box citations
-- **ID & identity document processing** — extract and validate fields from passports, national IDs, and driving licences locally via Gemma 4 — no data leaves the device
+- **Local, offline OCR** — on-device document parsing via **baidu/Unlimited-OCR** on MLX, with automatic fallback to the Gemini pipeline
+- **Local embeddings** — **Qwen3-Embedding-0.6B** generates 1024-dim vectors natively on MLX, fully replacing the Gemini embeddings API on the ingestion/search path
+- **Hybrid RAG** — pgvector with an HNSW + cosine-similarity index for retrieval, Gemini 2.5 Flash/Pro for generation, every claim traced back to its source passage
 - **Contract & compliance review** — Q&A over legal agreements, regulatory filings, or technical specs with every claim linked back to its source passage
 
-[![Next.js](https://img.shields.io/badge/Next.js-black?logo=nextdotjs&logoColor=white)](https://nextjs.org) [![Express](https://img.shields.io/badge/Express-000000?logo=express&logoColor=white)](https://expressjs.com) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL%20+%20pgvector-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org) [![Gemini](https://img.shields.io/badge/Gemini%202.5-4285F4?logo=google&logoColor=white)](https://ai.google.dev) [![Gemma 4](https://img.shields.io/badge/Gemma%204-669DF6?logo=google&logoColor=white)](https://ai.google.dev/gemma) [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com) [![Turborepo](https://img.shields.io/badge/Turborepo-EF4444?logo=turborepo&logoColor=white)](https://turbo.build)
+| Local model                          | Params / Quantization | Output                      | Throughput (Apple Silicon, on-device) |
+| ------------------------------------- | ---------------------- | ---------------------------- | -------------------------------------- |
+| Unlimited-OCR (extraction)           | 3B VLM, 4-bit MLX      | Markdown + grounding boxes  | ~8–12 pages/min (sequential, single-flight) |
+| Qwen3-Embedding-0.6B (embeddings)    | 0.6B, 4-bit MLX DWQ    | 1024-dim vectors            | ~300–500 chunks/min (batched)          |
+
+[![Next.js](https://img.shields.io/badge/Next.js-black?logo=nextdotjs&logoColor=white)](https://nextjs.org) [![Express](https://img.shields.io/badge/Express-000000?logo=express&logoColor=white)](https://expressjs.com) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL%20+%20pgvector-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org) [![Gemini](https://img.shields.io/badge/Gemini%202.5-4285F4?logo=google&logoColor=white)](https://ai.google.dev) [![Unlimited-OCR](https://img.shields.io/badge/baidu%2FUnlimited--OCR-000000?logo=github&logoColor=white)](https://github.com/baidu/Unlimited-OCR) [![Qwen3-Embedding](https://img.shields.io/badge/Qwen3--Embedding--0.6B-purple?logo=alibabacloud&logoColor=white)](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) [![MLX](https://img.shields.io/badge/MLX-Apple_Silicon-000000?logo=apple&logoColor=white)](https://github.com/ml-explore/mlx) [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com) [![Turborepo](https://img.shields.io/badge/Turborepo-EF4444?logo=turborepo&logoColor=white)](https://turbo.build)
 
 ---
 
