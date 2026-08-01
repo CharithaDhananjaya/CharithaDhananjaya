@@ -23,23 +23,28 @@ Full-stack cookie consent platform with a CDN-first config architecture, a React
 
 ---
 
-### 📄⚙️ doc-grinder — PDF Intelligence Pipeline
+### 📄⚙️ doc-grinder — Local-First Document Grounding Pipeline
 
-AI document intelligence pipeline that extracts structured fields, generates pgvector embeddings, and answers questions with page-level bounding-box citations — grounded to the source PDF via a hybrid RAG architecture powered by Gemini 2.5. Also ships a fully local, offline pipeline on Apple Silicon: **[baidu/Unlimited-OCR](https://github.com/baidu/Unlimited-OCR)** (3B VLM, MLX 4-bit, via **[sahilchachra/unlimited-ocr-4bit-mlx](https://huggingface.co/sahilchachra/unlimited-ocr-4bit-mlx)**) for extraction, and **[Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B)** (0.6B, MLX 4-bit DWQ, via **[mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ](https://huggingface.co/mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ)**) for 1024-dim embeddings — zero API cost, no data leaves the device.
+Grounded RAG pipeline that extracts structured fields and answers questions with page-level bounding-box citations — every claim traceable to its exact source passage.
 
-- **Financial underwriting** — parse loan applications, income statements, and KYC documents into structured fields ready for downstream decisioning
-- **Table & data extraction** — pull structured tables, figures, and key values from dense PDFs with exact page and bounding-box citations
-- **Local, offline OCR** — on-device document parsing via **baidu/Unlimited-OCR** on MLX, with automatic fallback to the Gemini pipeline
-- **Local embeddings** — **Qwen3-Embedding-0.6B** generates 1024-dim vectors natively on MLX, fully replacing the Gemini embeddings API on the ingestion/search path
-- **Hybrid RAG** — pgvector with an HNSW + cosine-similarity index for retrieval, Gemini 2.5 Flash/Pro for generation, every claim traced back to its source passage
-- **Contract & compliance review** — Q&A over legal agreements, regulatory filings, or technical specs with every claim linked back to its source passage
+The full AI stack runs natively on consumer Apple Silicon hardware (a single Mac mini) via MLX: OCR via **[baidu/Unlimited-OCR](https://github.com/baidu/Unlimited-OCR)** (3B VLM, 4-bit, via **[sahilchachra/unlimited-ocr-4bit-mlx](https://huggingface.co/sahilchachra/unlimited-ocr-4bit-mlx)**), embeddings via **[Qwen3-Embedding-0.6B](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B)** (4-bit DWQ, via **[mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ](https://huggingface.co/mlx-community/Qwen3-Embedding-0.6B-4bit-DWQ)**), and reasoning via **[Qwen3-4B-Instruct-2507](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507)** (4-bit, via **[mlx-community/Qwen3-4B-Instruct-2507-4bit](https://huggingface.co/mlx-community/Qwen3-4B-Instruct-2507-4bit)**) served through **[vllm-mlx](https://github.com/waybarrios/vllm-mlx)** with constrained JSON-schema decoding.
 
-| Local model                          | Params / Quantization | Output                      | Throughput (Apple Silicon, on-device) |
-| ------------------------------------- | ---------------------- | ---------------------------- | -------------------------------------- |
-| Unlimited-OCR (extraction)           | 3B VLM, 4-bit MLX      | Markdown + grounding boxes  | ~8–12 pages/min (sequential, single-flight) |
-| Qwen3-Embedding-0.6B (embeddings)    | 0.6B, 4-bit MLX DWQ    | 1024-dim vectors            | ~300–500 chunks/min (batched)          |
+Zero API cost, no data leaving the device on the default local path — Gemini stays wired in only as an automatic fallback for complex, cross-document reasoning or local outages.
 
-[![Next.js](https://img.shields.io/badge/Next.js-black?logo=nextdotjs&logoColor=white)](https://nextjs.org) [![Express](https://img.shields.io/badge/Express-000000?logo=express&logoColor=white)](https://expressjs.com) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL%20+%20pgvector-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org) [![Gemini](https://img.shields.io/badge/Gemini%202.5-4285F4?logo=google&logoColor=white)](https://ai.google.dev) [![Unlimited-OCR](https://img.shields.io/badge/baidu%2FUnlimited--OCR-000000?logo=github&logoColor=white)](https://github.com/baidu/Unlimited-OCR) [![Qwen3-Embedding](https://img.shields.io/badge/Qwen3--Embedding--0.6B-purple?logo=alibabacloud&logoColor=white)](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) [![MLX](https://img.shields.io/badge/MLX-Apple_Silicon-000000?logo=apple&logoColor=white)](https://github.com/ml-explore/mlx) [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com) [![Turborepo](https://img.shields.io/badge/Turborepo-EF4444?logo=turborepo&logoColor=white)](https://turbo.build)
+- **Fully local AI stack, one Mac mini** — OCR, embeddings, and reasoning all run 4-bit quantized on-device: no GPU cluster, no per-token cloud bill
+- **High-precision, schema-constrained reasoning** — local answers are constrained to a strict JSON citation schema at decode time: 100% schema validity and 100% fact accuracy on the eval suite, every claim traced to a page and bounding box
+- **Hybrid routing with automatic failover** — simple queries answer locally; complex or cross-document queries escalate to Gemini, and a circuit breaker detects a degraded local service and fails over automatically, with full visibility into which backend served each request
+- **Hybrid retrieval (RRF)** — over-retrieves on vector similarity, reranks with a fused BM25 + vector-rank signal to cut prefill size without losing citation coverage, on pgvector (HNSW + cosine)
+- **Financial & compliance extraction** — structured fields from loan applications, financial statements, KYC/ID documents, and contracts, with exact page + bbox provenance
+- **Built-in observability** — a monitoring dashboard tracking token usage, request volume, latency, and success rate across every AI backend, local and cloud, in one place
+
+| Local model                    | Params / Quantization         | Role                                     | Result (Apple Silicon, on-device)          |
+| ------------------------------- | ------------------------------ | ----------------------------------------- | -------------------------------------------- |
+| Unlimited-OCR                  | 3B VLM, 4-bit MLX              | Extraction — markdown + grounding boxes  | ~8–12 pages/min                              |
+| Qwen3-Embedding-0.6B            | 0.6B, 4-bit MLX DWQ             | Embeddings — 1024-dim vectors            | ~300–500 chunks/min                          |
+| Qwen3-4B-Instruct-2507          | 4B, 4-bit MLX (via vllm-mlx)    | Reasoning — schema-constrained Q&A       | 100% schema-valid · 100% fact-accurate (eval) |
+
+[![Next.js](https://img.shields.io/badge/Next.js-black?logo=nextdotjs&logoColor=white)](https://nextjs.org) [![Express](https://img.shields.io/badge/Express-000000?logo=express&logoColor=white)](https://expressjs.com) [![PostgreSQL](https://img.shields.io/badge/PostgreSQL%20+%20pgvector-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org) [![Gemini](https://img.shields.io/badge/Gemini%203.x-4285F4?logo=google&logoColor=white)](https://ai.google.dev) [![Unlimited-OCR](https://img.shields.io/badge/baidu%2FUnlimited--OCR-000000?logo=github&logoColor=white)](https://github.com/baidu/Unlimited-OCR) [![Qwen3-Embedding](https://img.shields.io/badge/Qwen3--Embedding--0.6B-purple?logo=alibabacloud&logoColor=white)](https://huggingface.co/Qwen/Qwen3-Embedding-0.6B) [![Qwen3-4B-Instruct](https://img.shields.io/badge/Qwen3--4B--Instruct-purple?logo=alibabacloud&logoColor=white)](https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507) [![vllm-mlx](https://img.shields.io/badge/vllm--mlx-black?logoColor=white)](https://github.com/waybarrios/vllm-mlx) [![MLX](https://img.shields.io/badge/MLX-Apple_Silicon-000000?logo=apple&logoColor=white)](https://github.com/ml-explore/mlx) [![Docker](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=white)](https://www.docker.com) [![Turborepo](https://img.shields.io/badge/Turborepo-EF4444?logo=turborepo&logoColor=white)](https://turbo.build)
 
 ---
 
