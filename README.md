@@ -31,6 +31,8 @@ The full AI stack runs natively on consumer Apple Silicon hardware (a single Mac
 
 Zero API cost, no data leaving the device on the default local path — Gemini stays wired in only as an automatic fallback for complex, cross-document reasoning or local outages.
 
+🔗 Try it live — [https://doc-grinder.web.app](https://doc-grinder.web.app)
+
 - **Fully local AI stack, one Mac mini** — OCR, embeddings, and reasoning all run 4-bit quantized on-device: no GPU cluster, no per-token cloud bill
 - **High-precision, schema-constrained reasoning** — local answers are constrained to a strict JSON citation schema at decode time: 100% schema validity and 100% fact accuracy on the eval suite, every claim traced to a page and bounding box
 - **Hybrid routing with automatic failover** — simple queries answer locally; complex or cross-document queries escalate to Gemini, and a circuit breaker detects a degraded local service and fails over automatically, with full visibility into which backend served each request
